@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>MT5 Live Monitor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0d1a1f; --panel:#13242b; --line:#22394243; --line2:#223a43;
+  --text:#d7e3e6; --mute:#7f979e; --gold:#e0a93b;
+  --up:#3dd6a0; --down:#f26d6d; --focus:#e0a93b;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);
+  font:500 15px/1.4 "Barlow Semi Condensed",system-ui,sans-serif;font-variant-numeric:tabular-nums}
+body{padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+button,input{font:inherit;color:inherit}
+button:focus-visible,input:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.wrap{max-width:1200px;margin:0 auto;padding:14px}
+header{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}
+.brand{font-weight:700;font-size:17px;letter-spacing:.2px}
+.status{display:flex;align-items:center;gap:8px;color:var(--mute);font-size:13px}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--down)}
+.dot.ok{background:var(--up)}
+.gear{background:none;border:1px solid var(--line2);border-radius:6px;padding:5px 10px;cursor:pointer;color:var(--mute)}
+.gear:hover{color:var(--text)}
+
+.hero{background:var(--panel);border:1px solid var(--line2);border-radius:10px;padding:18px 18px 14px}
+.eq-label{color:var(--mute);font-size:13px}
+.eq{font-size:clamp(38px,9vw,60px);font-weight:700;line-height:1.05;color:var(--gold);letter-spacing:-.5px}
+.eq small{font-size:.38em;color:var(--mute);font-weight:500;margin-left:8px}
+.float{font-size:18px;font-weight:600;margin-top:2px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px 18px;margin-top:16px;
+  padding-top:14px;border-top:1px solid var(--line2)}
+.stats div span{display:block;color:var(--mute);font-size:12.5px}
+.stats div b{font-size:17px;font-weight:600}
+
+nav{display:flex;gap:2px;margin:16px 0 0;border-bottom:1px solid var(--line2);overflow-x:auto}
+nav button{background:none;border:0;border-bottom:2px solid transparent;padding:10px 16px;cursor:pointer;
+  color:var(--mute);white-space:nowrap}
+nav button[aria-selected=true]{color:var(--text);border-bottom-color:var(--gold)}
+nav button i{font-style:normal;color:var(--mute);font-size:12.5px;margin-left:6px}
+
+.tablewrap{overflow-x:auto;background:var(--panel);border:1px solid var(--line2);border-top:0;border-radius:0 0 10px 10px}
+table{width:100%;border-collapse:collapse;min-width:760px}
+th,td{padding:8px 12px;text-align:right;white-space:nowrap;border-bottom:1px solid var(--line2)}
+th{color:var(--mute);font-weight:500;font-size:13px;position:sticky;top:0;background:var(--panel)}
+th:first-child,td:first-child,th.l,td.l{text-align:left}
+tbody tr:last-child td{border-bottom:0}
+tr.sum td{background:#0f1f25;font-weight:600}
+.buy{color:#6fb1ff}.sell{color:#ff9a7a}
+.up{color:var(--up)}.down{color:var(--down)}
+.empty{padding:34px 16px;text-align:center;color:var(--mute)}
+.group{margin-top:14px;display:flex;flex-wrap:wrap;gap:10px}
+.group div{background:var(--panel);border:1px solid var(--line2);border-radius:8px;padding:9px 14px;min-width:150px}
+.group span{display:block;color:var(--mute);font-size:12.5px}
+.group b{font-size:16px}
+
+dialog{background:var(--panel);color:var(--text);border:1px solid var(--line2);border-radius:10px;padding:20px;width:min(440px,92vw)}
+dialog::backdrop{background:#000a}
+dialog h2{margin:0 0 4px;font-size:18px}
+dialog p{margin:0 0 14px;color:var(--mute);font-size:13.5px}
+label{display:block;margin:10px 0 4px;color:var(--mute);font-size:13px}
+input{width:100%;background:var(--bg);border:1px solid var(--line2);border-radius:6px;padding:9px 10px}
+.row{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+.btn{background:var(--gold);color:#1a1405;border:0;border-radius:6px;padding:8px 16px;font-weight:600;cursor:pointer}
+.btn.ghost{background:none;color:var(--mute);border:1px solid var(--line2)}
+#err{margin-top:12px;color:var(--down);font-size:13.5px;min-height:1em}
+@media (prefers-reduced-motion:no-preference){.dot.ok{animation:pulse 2s ease-in-out infinite}}
+@keyframes pulse{50%{opacity:.4}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">MT5 Live Monitor</div>
+    <div class="status"><span class="dot" id="dot"></span><span id="stxt">Belum terhubung</span>
+      <button class="gear" id="open">Pengaturan</button></div>
+  </header>
+
+  <section class="hero" aria-live="off">
+    <div class="eq-label" id="acc">Equity</div>
+    <div class="eq"><span id="eq">–</span><small id="cur"></small></div>
+    <div class="float" id="fl"></div>
+    <div class="stats">
+      <div><span>Balance</span><b id="bal">–</b></div>
+      <div><span>Margin</span><b id="mar">–</b></div>
+      <div><span>Free margin</span><b id="fm">–</b></div>
+      <div><span>Margin level</span><b id="ml">–</b></div>
+    </div>
+  </section>
+
+  <nav role="tablist" id="tabs">
+    <button role="tab" aria-selected="true" data-t="trade">Trade<i id="n-trade"></i></button>
+    <button role="tab" aria-selected="false" data-t="orders">Pending<i id="n-orders"></i></button>
+    <button role="tab" aria-selected="false" data-t="exposure">Exposure</button>
+    <button role="tab" aria-selected="false" data-t="history">History<i id="n-history"></i></button>
+  </nav>
+  <div class="tablewrap" id="view"><div class="empty">Buka Pengaturan, lalu isi alamat API dan token.</div></div>
+  <div class="group" id="group"></div>
+</div>
+
+<dialog id="dlg">
+  <h2>Hubungkan ke MT5</h2>
+  <p>Data tersimpan hanya di browser ini.</p>
+  <label for="url">Alamat API (URL tunnel)</label>
+  <input id="url" placeholder="https://xxxx.trycloudflare.com" autocomplete="off" inputmode="url">
+  <label for="tok">Token</label>
+  <input id="tok" type="password" autocomplete="off">
+  <label for="int">Refresh (detik)</label>
+  <input id="int" type="number" min="1" max="60" value="2">
+  <div class="row">
+    <button class="btn ghost" id="cancel">Batal</button>
+    <button class="btn" id="save">Simpan dan hubungkan</button>
+  </div>
+</dialog>
+
+<script>
+const $ = id => document.getElementById(id);
+const store = {
+  get: k => { try { return localStorage.getItem(k) || "" } catch { return "" } },
+  set: (k, v) => { try { localStorage.setItem(k, v) } catch {} }
+};
+let state = null, tab = "trade", timer = null;
+
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const num = (v, d = 2) => Number(v).toLocaleString("en-US", {minimumFractionDigits: d, maximumFractionDigits: d});
+const px = v => v ? num(v, 2) : "";
+const cls = v => v > 0 ? "up" : v < 0 ? "down" : "";
+const when = t => new Date(t * 1000).toISOString().slice(0, 19).replace("T", " ").replace(/-/g, ".");
+
+function renderHero() {
+  const a = state.account;
+  $("acc").textContent = `Equity · akun ${a.login} · ${a.server} · 1:${a.leverage}`;
+  $("eq").textContent = num(a.equity);
+  $("cur").textContent = a.currency;
+  const f = $("fl");
+  f.textContent = `${a.profit >= 0 ? "+" : ""}${num(a.profit)} floating`;
+  f.className = "float " + cls(a.profit);
+  $("bal").textContent = num(a.balance);
+  $("mar").textContent = num(a.margin);
+  $("fm").textContent = num(a.free_margin);
+  $("ml").textContent = a.margin ? num(a.margin_level) + " %" : "–";
+  $("n-trade").textContent = state.positions.length;
+  $("n-orders").textContent = state.orders.length;
+  $("n-history").textContent = state.history.length;
+}
+
+function table(head, rows, empty) {
+  if (!rows.length) return `<div class="empty">${empty}</div>`;
+  return `<table><thead><tr>${head.map((h, i) => `<th${h[1] ? ' class="l"' : ""}>${h[0]}</th>`).join("")}</tr></thead><tbody>${rows.join("")}</tbody></table>`;
+}
+
+function renderTrade() {
+  const P = [...state.positions].sort((a, b) => a.comment.localeCompare(b.comment) || b.time - a.time);
+  const rows = P.map(p => `<tr><td class="l">${esc(p.symbol)}</td><td>${when(p.time)}</td><td class="${p.type}">${p.type}</td>
+    <td>${num(p.volume)}</td><td>${px(p.open)}</td><td>${px(p.sl)}</td><td>${px(p.tp)}</td><td>${px(p.price)}</td>
+    <td class="${cls(p.profit)}">${num(p.profit)}</td><td class="l">${esc(p.comment)}</td></tr>`);
+  const tot = P.reduce((s, p) => s + p.profit + p.swap, 0);
+  if (rows.length) rows.push(`<tr class="sum"><td class="l" colspan="8">Total floating</td><td class="${cls(tot)}">${num(tot)}</td><td></td></tr>`);
+  $("view").innerHTML = table([["Symbol",1],["Time"],["Type"],["Volume"],["Price"],["S / L"],["T / P"],["Price"],["Profit"],["Comment",1]], rows, "Tidak ada posisi terbuka.");
+
+  const by = {};
+  P.forEach(p => { const k = p.comment || "(tanpa komentar)"; (by[k] ||= {n: 0, v: 0, pr: 0}); by[k].n++; by[k].v += p.volume; by[k].pr += p.profit + p.swap; });
+  $("group").innerHTML = Object.entries(by).map(([k, g]) =>
+    `<div><span>${esc(k)} · ${g.n} posisi · ${num(g.v)} lot</span><b class="${cls(g.pr)}">${num(g.pr)}</b></div>`).join("");
+}
+
+function renderOrders() {
+  const rows = state.orders.map(o => `<tr><td class="l">${esc(o.symbol)}</td><td>${when(o.time)}</td><td>${o.type}</td>
+    <td>${num(o.volume)}</td><td>${px(o.price)}</td><td>${px(o.sl)}</td><td>${px(o.tp)}</td><td class="l">${esc(o.comment)}</td></tr>`);
+  $("view").innerHTML = table([["Symbol",1],["Time"],["Type"],["Volume"],["Price"],["S / L"],["T / P"],["Comment",1]], rows, "Tidak ada pending order.");
+  $("group").innerHTML = "";
+}
+
+function renderExposure() {
+  const rows = state.exposure.map(e => `<tr><td class="l">${esc(e.symbol)}</td><td class="buy">${num(e.buy)}</td>
+    <td class="sell">${num(e.sell)}</td><td>${num(e.net)}</td><td>${e.bid ? px(e.bid) + " / " + px(e.ask) : ""}</td>
+    <td class="${cls(e.profit)}">${num(e.profit)}</td></tr>`);
+  $("view").innerHTML = table([["Symbol",1],["Buy lot"],["Sell lot"],["Net lot"],["Bid / Ask"],["Profit"]], rows, "Tidak ada exposure.");
+  $("group").innerHTML = "";
+}
+
+function renderHistory() {
+  const H = state.history;
+  const rows = H.map(h => `<tr><td class="l">${esc(h.symbol)}</td><td>${when(h.time)}</td><td class="${h.type}">${h.type}</td>
+    <td>${num(h.volume)}</td><td>${px(h.price)}</td><td class="${cls(h.profit)}">${num(h.profit)}</td><td class="l">${esc(h.comment)}</td></tr>`);
+  const tot = H.reduce((s, h) => s + h.profit, 0);
+  if (rows.length) rows.push(`<tr class="sum"><td class="l" colspan="5">Total ${H.length} deal terakhir (7 hari)</td><td class="${cls(tot)}">${num(tot)}</td><td></td></tr>`);
+  $("view").innerHTML = table([["Symbol",1],["Time"],["Type"],["Volume"],["Price"],["Profit"],["Comment",1]], rows, "Belum ada riwayat transaksi.");
+  $("group").innerHTML = "";
+}
+
+function render() {
+  if (!state) return;
+  renderHero();
+  ({trade: renderTrade, orders: renderOrders, exposure: renderExposure, history: renderHistory})[tab]();
+}
+
+function setStatus(ok, text) { $("dot").classList.toggle("ok", ok); $("stxt").textContent = text; }
+
+async function poll() {
+  const base = store.get("url").replace(/\/+$/, ""), token = store.get("tok");
+  if (!base || !token) return setStatus(false, "Belum terhubung");
+  try {
+    const r = await fetch(base + "/api/state", {headers: {"X-Token": token}, cache: "no-store"});
+    if (r.status === 401) throw new Error("Token salah");
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || "Server error " + r.status);
+    state = j; render();
+    setStatus(true, "Live · " + new Date().toLocaleTimeString("id-ID"));
+  } catch (e) {
+    setStatus(false, e.message === "Failed to fetch" ? "Server tidak terjangkau" : e.message);
+  }
+}
+
+function start() {
+  clearInterval(timer);
+  const s = Math.min(60, Math.max(1, +store.get("int") || 2));
+  poll(); timer = setInterval(() => { if (!document.hidden) poll(); }, s * 1000);
+}
+
+$("tabs").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  tab = b.dataset.t;
+  document.querySelectorAll("#tabs button").forEach(x => x.setAttribute("aria-selected", x === b));
+  render();
+});
+$("open").onclick = () => { $("url").value = store.get("url"); $("tok").value = store.get("tok"); $("int").value = store.get("int") || 2; $("dlg").showModal(); };
+$("cancel").onclick = () => $("dlg").close();
+$("save").onclick = () => {
+  store.set("url", $("url").value.trim()); store.set("tok", $("tok").value.trim()); store.set("int", $("int").value);
+  $("dlg").close(); start();
+};
+start();
+</script>
+</body>
+</html>
